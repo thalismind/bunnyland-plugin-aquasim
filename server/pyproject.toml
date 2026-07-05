@@ -1,6 +1,6 @@
 [project]
 name = "bunnyland-aquasim"
-version = "0.1.0"
+version = "0.2.0"
 description = "Out-of-tree Bunnyland plugin: swimming, diving, and the underwater — water rooms, a breath meter, drowning, currents, hazards, deterministic dive loot, and a swim skill."
 readme = "README.md"
 requires-python = ">=3.12"

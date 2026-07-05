@@ -11,7 +11,14 @@ helpers resolve the two questions the aquasim logic and command handlers actuall
 
 from __future__ import annotations
 
-from bunnyland.core import RoomComponent, container_of
+from bunnyland.core import (
+    CharacterComponent,
+    DeadComponent,
+    RoomComponent,
+    SuspendedComponent,
+    container_of,
+    contents,
+)
 from relics import Entity, World
 
 #: Guard against pathological containment cycles while walking up to a room.
@@ -55,4 +62,26 @@ def room_of(world: World, entity_id) -> Entity | None:
     return None
 
 
-__all__ = ["holder_of", "room_of"]
+def active_characters_in_room(world: World, room: Entity | None) -> list[Entity]:
+    """Return the live, un-suspended characters resting directly in ``room``, id-sorted.
+
+    Shared by the v2 marine-life and storyteller mechanics so harmful world participation
+    (spec 8.1) consistently excludes suspended and dead characters.
+    """
+    if room is None:
+        return []
+    characters: list[Entity] = []
+    for entity_id in contents(room):
+        if not world.has_entity(entity_id):
+            continue
+        entity = world.get_entity(entity_id)
+        if not entity.has_component(CharacterComponent):
+            continue
+        if entity.has_component(SuspendedComponent) or entity.has_component(DeadComponent):
+            continue
+        characters.append(entity)
+    characters.sort(key=lambda entity: str(entity.id))
+    return characters
+
+
+__all__ = ["active_characters_in_room", "holder_of", "room_of"]

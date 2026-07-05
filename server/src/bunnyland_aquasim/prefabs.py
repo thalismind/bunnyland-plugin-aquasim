@@ -19,6 +19,7 @@ from bunnyland.core import (
 from relics import Entity, World
 
 from .components import RebreatherComponent, TreasureCacheComponent
+from .gear import GEAR_TIERS, DiveGearComponent, gear_stats
 
 
 def _link_into_room(world: World, item: Entity, room_id) -> None:
@@ -62,4 +63,27 @@ def spawn_treasure_cache(
     return cache
 
 
-__all__ = ["spawn_rebreather", "spawn_treasure_cache"]
+def spawn_dive_gear(world: World, *, tier: str = "scuba", room_id=None) -> Entity:
+    """Spawn a tier of diving gear, optionally placed in ``room_id``.
+
+    The item carries both a :class:`~bunnyland_aquasim.gear.DiveGearComponent` (for the v2
+    depth-gating) and a matching :class:`~bunnyland_aquasim.components.RebreatherComponent`,
+    so the untouched v1 breath-drain relief benefits from the tier's ``efficiency``.
+    """
+    efficiency, pressure = gear_stats(tier)
+    label = GEAR_TIERS.get(tier, (0.0, 0.0, f"a {tier}"))[2]
+    item = spawn_entity(
+        world,
+        [
+            IdentityComponent(name=label, kind="item", tags=("aquasim", "gear", tier)),
+            PortableComponent(),
+            HoldableComponent(slot="back"),
+            DiveGearComponent(tier=tier, efficiency=efficiency, pressure_rating=pressure),
+            RebreatherComponent(efficiency=efficiency),
+        ],
+    )
+    _link_into_room(world, item, room_id)
+    return item
+
+
+__all__ = ["spawn_dive_gear", "spawn_rebreather", "spawn_treasure_cache"]

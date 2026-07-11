@@ -44,7 +44,7 @@ from .edges import (
     prey_ids,
     prey_present,
 )
-from .enrichment import AquaWorldgenHook
+from .enrichment import AquaGenerationEnricher
 from .gear import (
     GEAR_TIERS,
     DiveGearComponent,
@@ -119,7 +119,7 @@ __all__ = [
     "PLUGIN_ID",
     "SURVEY_ACTION_DEFINITIONS",
     "SURVEY_ACTION_HANDLERS",
-    "AquaWorldgenHook",
+    "AquaGenerationEnricher",
     "BreathChangedEvent",
     "BreathComponent",
     "BreathConsequence",

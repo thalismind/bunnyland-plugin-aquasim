@@ -20,8 +20,8 @@ from bunnyland.core import (
 from bunnyland.core.commands import CommandCost, Lane, build_submitted_command
 from bunnyland.core.ecs import replace_component
 from bunnyland.core.handlers import HandlerContext
-from bunnyland.mechanics.consumables import FoodComponent
-from bunnyland.mechanics.meter import Meter
+from bunnyland.foundation.consumables.components import FoodComponent
+from bunnyland.foundation.meters.mechanics import Meter
 from bunnyland.prompts.context import ComponentPromptContext, PromptPerspective
 
 from bunnyland_aquasim import (
@@ -116,9 +116,7 @@ def _run(handler_cls, actor, character, command_type, payload=None, epoch=EPOCH)
 
 def _structure_room(world, *, kind="wreck", depth_rating=1.0, renown=1.0):
     room = _water_room(world)
-    room.add_component(
-        StructureComponent(kind=kind, depth_rating=depth_rating, renown=renown)
-    )
+    room.add_component(StructureComponent(kind=kind, depth_rating=depth_rating, renown=renown))
     return room
 
 

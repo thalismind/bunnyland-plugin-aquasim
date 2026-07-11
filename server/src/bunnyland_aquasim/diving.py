@@ -78,9 +78,10 @@ def _first_cache_in_room(world: World, room: Entity) -> Entity | None:
         if not world.has_entity(entity_id):
             continue
         entity = world.get_entity(entity_id)
-        if entity.has_component(TreasureCacheComponent) and not entity.get_component(
-            TreasureCacheComponent
-        ).looted:
+        if (
+            entity.has_component(TreasureCacheComponent)
+            and not entity.get_component(TreasureCacheComponent).looted
+        ):
             caches.append(entity)
     caches.sort(key=lambda entity: str(entity.id))
     return caches[0] if caches else None
@@ -111,9 +112,10 @@ class DiveHandler:
             return rejected("you are not in the water")
         if not character.has_component(SwimSkillComponent):
             return rejected("you cannot swim")
-        if character.has_component(BreathComponent) and breath_band(
-            character.get_component(BreathComponent)
-        ) == "crisis":
+        if (
+            character.has_component(BreathComponent)
+            and breath_band(character.get_component(BreathComponent)) == "crisis"
+        ):
             return rejected("you have no breath left to dive")
 
         cache, rejection = self._resolve_cache(ctx, room, command)

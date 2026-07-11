@@ -108,9 +108,7 @@ class CurrentConsequence:
                 ):
                     continue
                 remove_from_container(world, character.id)
-                target.add_relationship(
-                    Contains(mode=ContainmentMode.ROOM_CONTENT), character.id
-                )
+                target.add_relationship(Contains(mode=ContainmentMode.ROOM_CONTENT), character.id)
                 events.append(
                     DriftedEvent(
                         **event_base(

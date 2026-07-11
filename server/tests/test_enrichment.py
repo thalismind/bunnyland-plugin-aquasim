@@ -1,93 +1,47 @@
-from __future__ import annotations
-
 import asyncio
 
-from bunnyland.core import (
-    IdentityComponent,
-    RoomComponent,
-    WorldActor,
-    spawn_entity,
-)
-from bunnyland.core.components import GenerationIntentComponent
-from bunnyland.core.events import ObjectGeneratedEvent, RoomGeneratedEvent, event_base
-from bunnyland.plugins import apply_plugins, load_modules
+from bunnyland.core import WorldActor
+from bunnyland.plugins import apply_plugins
+from bunnyland.worldgen import ObjectSpec, RoomSpec, WorldProposal, instantiate
 
 from bunnyland_aquasim import SubmergedComponent, TreasureCacheComponent
+from bunnyland_aquasim.plugin import bunnyland_plugins as _plugins
 
 
-def _actor():
+def _world(*, room=None, object_=None):
     actor = WorldActor()
-    apply_plugins(load_modules(["bunnyland_aquasim"]), actor)
-    return actor
-
-
-def _publish(actor, event):
-    asyncio.run(actor.bus.publish(event))
-
-
-def _room(actor, *, biome="unknown", tags=(), description=""):
-    entity = spawn_entity(actor.world, [RoomComponent(title="Room", biome=biome)])
-    event = RoomGeneratedEvent(
-        **event_base(0),
-        seed="seed",
-        entity_id=str(entity.id),
-        entity_key="room",
-        entity_kind="room",
-        generation=GenerationIntentComponent(tags=tuple(tags), description=description),
-        room_key="room",
-        biome=biome,
+    apply_plugins(_plugins(), actor)
+    result = asyncio.run(
+        instantiate(
+            actor,
+            WorldProposal(
+                seed="seed",
+                rooms=[room or RoomSpec(key="room", title="Room")],
+                objects=[object_] if object_ else [],
+            ),
+        )
     )
-    _publish(actor, event)
-    return entity
+    return actor, result
 
 
-def _object(actor, *, tags=(), description=""):
-    entity = spawn_entity(actor.world, [IdentityComponent(name="thing", kind="item")])
-    event = ObjectGeneratedEvent(
-        **event_base(0),
-        seed="seed",
-        entity_id=str(entity.id),
-        entity_key="thing",
-        entity_kind="object",
-        generation=GenerationIntentComponent(tags=tuple(tags), description=description),
-        object_key="thing",
+def test_aquatic_and_flooded_rooms_are_submerged():
+    actor, result = _world(room=RoomSpec(key="reef", title="Reef", biome="reef"))
+    assert actor.world.get_entity(result.rooms["reef"]).has_component(SubmergedComponent)
+    actor, result = _world(
+        room=RoomSpec(key="grotto", title="Grotto", description="a flooded sunken grotto")
     )
-    _publish(actor, event)
-    return entity
+    assert actor.world.get_entity(result.rooms["grotto"]).has_component(SubmergedComponent)
 
 
-def test_aquatic_biome_room_is_flooded():
-    actor = _actor()
-    room = _room(actor, biome="reef")
-    assert room.has_component(SubmergedComponent)
+def test_dry_room_is_ignored():
+    actor, result = _world(room=RoomSpec(key="field", title="Field", biome="meadow"))
+    assert not actor.world.get_entity(result.rooms["field"]).has_component(SubmergedComponent)
 
 
-def test_wet_description_floods_a_room():
-    actor = _actor()
-    room = _room(actor, biome="cavern", description="a flooded sunken grotto")
-    assert room.has_component(SubmergedComponent)
-
-
-def test_dry_room_is_not_flooded():
-    actor = _actor()
-    room = _room(actor, biome="meadow", tags=("grassy",), description="a sunny hill")
-    assert not room.has_component(SubmergedComponent)
-
-
-def test_treasure_object_becomes_a_cache():
-    actor = _actor()
-    obj = _object(actor, tags=("treasure", "chest"))
-    assert obj.has_component(TreasureCacheComponent)
-    assert obj.get_component(TreasureCacheComponent).table
-
-
-def test_treasure_detected_from_description():
-    actor = _actor()
-    obj = _object(actor, description="a sunken shipwreck full of gold")
-    assert obj.has_component(TreasureCacheComponent)
-
-
-def test_plain_object_is_not_a_cache():
-    actor = _actor()
-    obj = _object(actor, tags=("wooden", "crate"))
-    assert not obj.has_component(TreasureCacheComponent)
+def test_treasure_objects_become_caches_and_plain_objects_do_not():
+    actor, result = _world(object_=ObjectSpec(key="chest", name="Treasure Chest", room_key="room"))
+    assert (
+        actor.world.get_entity(result.objects["chest"]).get_component(TreasureCacheComponent).table
+    )
+    actor, result = _world(object_=ObjectSpec(key="rock", name="Rock", room_key="room"))
+    assert not actor.world.get_entity(result.objects["rock"]).has_component(TreasureCacheComponent)

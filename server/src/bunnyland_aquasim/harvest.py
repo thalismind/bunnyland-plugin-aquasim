@@ -5,7 +5,7 @@ water room. The ``harvest`` verb pulls one yield from it, chosen **deterministic
 the node's desirability-ordered ``table`` (a hash of the node id and epoch), biased upward by
 the harvester's luck when a fortune pack is loaded. Each yield feeds several sinks at once:
 
-- edible yields carry the core :class:`~bunnyland.mechanics.consumables.FoodComponent`, so
+- edible yields carry Foundation Consumables' ``FoodComponent``, so
   fish always feeds **lifesim hunger** with no other pack required; and, when a hearth pack
   is loaded, an ``IngredientComponent`` so it can be cooked;
 - pearls and treasures carry a museum ``CollectibleComponent`` when a museum pack is loaded;
@@ -41,7 +41,7 @@ from bunnyland.core.handlers import (
     require_character,
     require_entity,
 )
-from bunnyland.mechanics.consumables import FoodComponent
+from bunnyland.foundation.consumables.components import FoodComponent
 from bunnyland.prompts.context import ComponentPromptContext
 from pydantic.dataclasses import dataclass
 from relics import Component, Entity, World

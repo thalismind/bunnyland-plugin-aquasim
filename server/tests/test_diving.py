@@ -13,7 +13,7 @@ from bunnyland.core import (
 )
 from bunnyland.core.commands import CommandCost, Lane, build_submitted_command
 from bunnyland.core.handlers import HandlerContext
-from bunnyland.mechanics.meter import Meter
+from bunnyland.foundation.meters.mechanics import Meter
 
 from bunnyland_aquasim import (
     BreathComponent,
@@ -193,12 +193,8 @@ def test_dive_rejects_looted_cache():
 
     from bunnyland.core.ecs import replace_component
 
-    replace_component(
-        cache, replace(cache.get_component(TreasureCacheComponent), looted=True)
-    )
-    result = DiveHandler().execute(
-        _ctx(actor), _cmd(diver.id, "dive", {"cache_id": str(cache.id)})
-    )
+    replace_component(cache, replace(cache.get_component(TreasureCacheComponent), looted=True))
+    result = DiveHandler().execute(_ctx(actor), _cmd(diver.id, "dive", {"cache_id": str(cache.id)}))
     assert not result.ok
     assert result.reason == "that cache has already been looted"
 
@@ -222,9 +218,7 @@ def test_dive_rejects_non_cache_target():
     diver = _diver(actor.world, room)
     rock = spawn_entity(actor.world, [IdentityComponent(name="rock", kind="item")])
     room.add_relationship(Contains(mode=ContainmentMode.ROOM_CONTENT), rock.id)
-    result = DiveHandler().execute(
-        _ctx(actor), _cmd(diver.id, "dive", {"cache_id": str(rock.id)})
-    )
+    result = DiveHandler().execute(_ctx(actor), _cmd(diver.id, "dive", {"cache_id": str(rock.id)}))
     assert not result.ok
     assert result.reason == "that is not a treasure cache"
 
@@ -233,9 +227,7 @@ def test_dive_rejects_missing_cache():
     actor = WorldActor()
     room = _water_room(actor.world)
     diver = _diver(actor.world, room)
-    result = DiveHandler().execute(
-        _ctx(actor), _cmd(diver.id, "dive", {"cache_id": "entity_9999"})
-    )
+    result = DiveHandler().execute(_ctx(actor), _cmd(diver.id, "dive", {"cache_id": "entity_9999"}))
     assert not result.ok
     assert result.reason == "cache does not exist"
 

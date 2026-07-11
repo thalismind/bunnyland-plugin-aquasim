@@ -26,7 +26,7 @@ from .diving import (
     TreasureRecoveredEvent,
 )
 from .edges import DiscoveredBy, PreysOn
-from .enrichment import AquaWorldgenHook
+from .enrichment import AquaGenerationEnricher
 from .gear import DiveGearComponent, gear_fragments
 from .harvest import (
     HARVEST_ACTION_DEFINITIONS,
@@ -122,7 +122,7 @@ def plugin() -> Plugin:
                 gear_fragments,
                 harvest_fragments,
             ),
-            worldgen_hooks=(AquaWorldgenHook,),
+            generation_enrichers=(AquaGenerationEnricher(),),
         ),
     )
 

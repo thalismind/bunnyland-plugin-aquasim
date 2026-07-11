@@ -22,8 +22,8 @@ from bunnyland.core.commands import CommandCost, Lane, build_submitted_command
 from bunnyland.core.components import GenerationIntentComponent
 from bunnyland.core.events import ObjectGeneratedEvent, RoomGeneratedEvent, event_base
 from bunnyland.core.handlers import HandlerContext
-from bunnyland.mechanics.meter import Meter
-from bunnyland.plugins import apply_plugins, load_modules
+from bunnyland.foundation.meters.mechanics import Meter
+from bunnyland.plugins import apply_plugins
 from bunnyland.prompts.context import ComponentPromptContext
 from pydantic.dataclasses import dataclass
 from relics import Component
@@ -49,6 +49,7 @@ from bunnyland_aquasim import (
     spawn_dive_gear,
 )
 from bunnyland_aquasim import synergy as synergy_mod
+from bunnyland_aquasim.plugin import bunnyland_plugins as _plugins
 
 EPOCH = 100
 
@@ -262,7 +263,7 @@ def test_passive_component_fragments():
 
 def _hook_actor():
     actor = WorldActor()
-    apply_plugins(load_modules(["bunnyland_aquasim"]), actor)
+    apply_plugins(_plugins(), actor)
     return actor
 
 

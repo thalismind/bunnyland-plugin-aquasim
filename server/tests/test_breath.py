@@ -12,7 +12,7 @@ from bunnyland.core import (
     WorldActor,
     spawn_entity,
 )
-from bunnyland.mechanics.meter import Meter
+from bunnyland.foundation.meters.mechanics import Meter
 
 from bunnyland_aquasim import (
     BreathChangedEvent,

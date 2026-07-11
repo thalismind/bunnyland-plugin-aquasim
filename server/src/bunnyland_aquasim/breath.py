@@ -1,6 +1,6 @@
 """Breath meter and drowning (mechanic 2).
 
-``BreathComponent`` reuses the shared :class:`~bunnyland.mechanics.meter.Meter` primitive,
+``BreathComponent`` reuses the shared Foundation ``Meter`` primitive,
 exactly like the ``needs`` mechanics. Its ``value`` is *oxygen debt* — a rising need:
 
 - underwater the debt **rises** each tick (the character's breath drains), scaled by room
@@ -21,7 +21,7 @@ from dataclasses import replace
 from bunnyland.core import DeadComponent, HealthComponent, SuspendedComponent
 from bunnyland.core.ecs import replace_component
 from bunnyland.core.events import DomainEvent, EventVisibility, event_base
-from bunnyland.mechanics.meter import Meter, band, changed
+from bunnyland.foundation.meters.mechanics import Meter, band, changed
 from bunnyland.prompts.context import ComponentPromptContext
 from pydantic.dataclasses import dataclass
 from relics import Component, World
@@ -110,8 +110,8 @@ class BreathConsequence:
         submerged = is_water_room(room)
         component = character.get_component(BreathComponent)
         if submerged:
-            delta = self.drain_per_depth * room_depth(room) * self._drain_multiplier(
-                world, character
+            delta = (
+                self.drain_per_depth * room_depth(room) * self._drain_multiplier(world, character)
             )
         else:
             delta = -self.refill_per_tick

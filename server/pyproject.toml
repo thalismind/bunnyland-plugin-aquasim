@@ -10,6 +10,9 @@ dependencies = [
     "relics",
 ]
 
+[project.optional-dependencies]
+3d = ["bunnyland-3d>=0.3.0"]
+
 [project.entry-points."bunnyland.plugins"]
 "bunnyland.aquasim" = "bunnyland_aquasim.plugin:bunnyland_plugins"
 

@@ -36,6 +36,7 @@ from .harvest import (
     harvest_fragments,
 )
 from .install import install_aquasim
+from .integration_3d import install_aquasim_3d
 from .marinelife import (
     MarineAttackEvent,
     MarineLifeComponent,
@@ -68,6 +69,7 @@ def plugin() -> Plugin:
                 "bunnyland.museumsim",
                 "bunnyland.hearthsim",
             ),
+            integrates_with=("bunnyland.3d",),
         ),
         ecs=EcsContribution(
             components=(
@@ -111,6 +113,7 @@ def plugin() -> Plugin:
         ),
         runtime=RuntimeContribution(
             service_factories=(install_aquasim,),
+            integration_factories=(install_aquasim_3d,),
         ),
         content=ContentContribution(
             prompt_fragments=(

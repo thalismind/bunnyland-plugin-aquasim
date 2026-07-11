@@ -1,0 +1,5 @@
+newmtl Seagrass
+Kd 0.10 0.42 0.31
+
+newmtl Kelp
+Kd 0.18 0.55 0.36

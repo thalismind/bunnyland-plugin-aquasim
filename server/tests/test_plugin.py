@@ -98,6 +98,7 @@ def test_plugin_recommends_optional_partners():
     )
     # Standalone-first: no hard requirements on any partner pack.
     assert plugin.dependencies.requires == ()
+    assert plugin.dependencies.integrates_with == ("bunnyland.3d",)
 
 
 def test_plugin_applies_and_registers_verbs():

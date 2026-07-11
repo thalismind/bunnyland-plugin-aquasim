@@ -1,0 +1,8 @@
+newmtl Coral
+Kd 0.78 0.27 0.30
+
+newmtl CoralTips
+Kd 0.96 0.55 0.42
+
+newmtl ReefStone
+Kd 0.38 0.42 0.39

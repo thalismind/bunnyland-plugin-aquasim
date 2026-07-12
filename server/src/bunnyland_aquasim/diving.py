@@ -29,8 +29,8 @@ from bunnyland.core import (
     PortableComponent,
     spawn_entity,
 )
-from bunnyland.core.actions import ActionArgument, ActionDefinition
-from bunnyland.core.commands import CommandCost, Lane, SubmittedCommand
+from bunnyland.core.actions import ActionArgument, ActionDefinition, ActionEffort, effort_cost
+from bunnyland.core.commands import Lane, SubmittedCommand
 from bunnyland.core.ecs import contents, remove_from_container, replace_component
 from bunnyland.core.events import DomainEvent, EventVisibility
 from bunnyland.core.handlers import (
@@ -224,7 +224,7 @@ DIVE_DEF = ActionDefinition(
     title="Dive",
     description="Dive for treasure in the water room you are in.",
     lane=Lane.WORLD,
-    cost=CommandCost(action=1),
+    cost=effort_cost(action=ActionEffort.ROUTINE),
     arguments={
         "cache_id": ActionArgument(
             title="Cache",
@@ -239,7 +239,7 @@ SURFACE_DEF = ActionDefinition(
     title="Surface",
     description="Swim up out of the water to catch your breath.",
     lane=Lane.WORLD,
-    cost=CommandCost(action=1),
+    cost=effort_cost(action=ActionEffort.ROUTINE),
     arguments={},
 )
 

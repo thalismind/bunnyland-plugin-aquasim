@@ -91,6 +91,31 @@ def improve_swim(character: Entity, *, epoch: int) -> DomainEvent | None:
     )
 
 
+def improved_swim(character: Entity, *, epoch: int):
+    """Return the updated skill and optional level event without mutating the character."""
+    if not character.has_component(SwimSkillComponent):
+        return None, None
+    skill = character.get_component(SwimSkillComponent)
+    experience = skill.experience + XP_PER_USE
+    levels_gained = int(experience // XP_PER_LEVEL)
+    updated = replace(
+        skill,
+        level=skill.level + levels_gained,
+        experience=experience - levels_gained * XP_PER_LEVEL,
+    )
+    event = None
+    if levels_gained > 0:
+        event = SwimSkillImprovedEvent(
+            **event_base(
+                epoch,
+                default_visibility=EventVisibility.PRIVATE,
+                actor_id=str(character.id),
+                level=updated.level,
+            )
+        )
+    return updated, event
+
+
 def swim_fragments(world: World, character: Entity) -> list[str]:
     """First-person mastery line for a strong swimmer."""
     if character is None or not character.has_component(SwimSkillComponent):
@@ -108,6 +133,7 @@ __all__ = [
     "SwimSkillComponent",
     "SwimSkillImprovedEvent",
     "improve_swim",
+    "improved_swim",
     "swim_drain_multiplier",
     "swim_fragments",
     "swim_hazard_multiplier",

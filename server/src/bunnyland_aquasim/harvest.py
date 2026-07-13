@@ -27,20 +27,19 @@ from bunnyland.core import (
     IdentityComponent,
     PortableComponent,
     contents,
-    spawn_entity,
 )
 from bunnyland.core.actions import ActionArgument, ActionDefinition, ActionEffort, effort_cost
 from bunnyland.core.commands import Lane, SubmittedCommand
-from bunnyland.core.ecs import replace_component
 from bunnyland.core.events import DomainEvent, EventVisibility
 from bunnyland.core.handlers import (
     HandlerContext,
     HandlerResult,
-    ok,
+    planned,
     rejected,
     require_character,
     require_entity,
 )
+from bunnyland.core.mutations import AddEdge, AddEntity, EntityReference, MutationPlan, SetComponent
 from bunnyland.foundation.consumables.components import FoodComponent
 from bunnyland.prompts.context import ComponentPromptContext
 from pydantic.dataclasses import dataclass
@@ -49,8 +48,8 @@ from relics import Component, Entity, World
 from .breath import BreathComponent, breath_band
 from .spatial import room_of
 from .submersion import is_water_room
-from .swim import improve_swim
-from .synergy import publish_collectible, publish_ingredient, read_luck
+from .swim import improved_swim
+from .synergy import collectible_component, ingredient_component, read_luck
 
 #: Luck units that shift the chosen loot one step up the desirability-ordered table.
 LUCK_PER_STEP = 5.0
@@ -140,11 +139,66 @@ class HarvestHandler:
         if rejection is not None:
             return rejection
 
-        events: list[DomainEvent] = [self._harvest(ctx, character, node)]
-        skill_event = improve_swim(character, epoch=ctx.epoch)
+        component = node.get_component(HarvestNodeComponent)
+        yield_name = luck_biased_loot(
+            str(node.id), ctx.epoch, component.table, read_luck(character)
+        )
+        item = EntityReference()
+        item_components = [
+            IdentityComponent(
+                name=yield_name,
+                kind="item",
+                tags=("aquasim", "harvest", component.resource),
+            ),
+            PortableComponent(),
+            HoldableComponent(slot="hand"),
+        ]
+        if component.edible:
+            item_components.append(
+                FoodComponent(
+                    nutrition=component.nutrition,
+                    satiety=component.satiety,
+                    raw=True,
+                )
+            )
+            ingredient = ingredient_component(tags=component.food_tags)
+            if ingredient is not None:
+                item_components.append(ingredient)
+        if component.collectible:
+            collectible = collectible_component(
+                category=component.category, rarity=component.rarity
+            )
+            if collectible is not None:
+                item_components.append(collectible)
+        operations = [
+            AddEntity(tuple(item_components), reference=item),
+            AddEdge(character.id, item, Contains(mode=ContainmentMode.INVENTORY)),
+            SetComponent(
+                node.id,
+                replace(component, remaining=component.remaining - 1),
+            ),
+        ]
+        events = [
+            lambda: HarvestedEvent(
+                **ctx.event_base(
+                    visibility=EventVisibility.ROOM,
+                    actor_id=str(character.id),
+                    room_id=str(room.id),
+                    target_ids=(str(node.id),),
+                    node_id=str(node.id),
+                    resource=component.resource,
+                    yield_id=str(item.require()),
+                    yield_name=yield_name,
+                    category=component.category,
+                )
+            )
+        ]
+        skill, skill_event = improved_swim(character, epoch=ctx.epoch)
+        if skill is not None:
+            operations.append(SetComponent(character.id, skill))
         if skill_event is not None:
             events.append(skill_event)
-        return ok(*events)
+        return planned(MutationPlan(tuple(operations)), *events)
 
     def _resolve_node(self, ctx: HandlerContext, room: Entity, command: SubmittedCommand):
         raw_node = command.payload.get("node_id")
@@ -169,53 +223,6 @@ class HarvestHandler:
         if node is None:
             return None, rejected("there is nothing here to harvest")
         return node, None
-
-    def _harvest(self, ctx: HandlerContext, character: Entity, node: Entity) -> DomainEvent:
-        component = node.get_component(HarvestNodeComponent)
-        luck = read_luck(character)
-        yield_name = luck_biased_loot(str(node.id), ctx.epoch, component.table, luck)
-        item = self._spawn_yield(ctx.world, component, yield_name)
-        character.add_relationship(Contains(mode=ContainmentMode.INVENTORY), item.id)
-        replace_component(node, replace(component, remaining=component.remaining - 1))
-        room = room_of(ctx.world, character.id)
-        return HarvestedEvent(
-            **ctx.event_base(
-                visibility=EventVisibility.ROOM,
-                actor_id=str(character.id),
-                room_id=str(room.id) if room is not None else None,
-                target_ids=(str(node.id),),
-                node_id=str(node.id),
-                resource=component.resource,
-                yield_id=str(item.id),
-                yield_name=yield_name,
-                category=component.category,
-            )
-        )
-
-    def _spawn_yield(
-        self, world: World, component: HarvestNodeComponent, yield_name: str
-    ) -> Entity:
-        item = spawn_entity(
-            world,
-            [
-                IdentityComponent(
-                    name=yield_name,
-                    kind="item",
-                    tags=("aquasim", "harvest", component.resource),
-                ),
-                PortableComponent(),
-                HoldableComponent(slot="hand"),
-            ],
-        )
-        if component.edible:
-            # Core FoodComponent feeds lifesim hunger with no partner pack required.
-            item.add_component(
-                FoodComponent(nutrition=component.nutrition, satiety=component.satiety, raw=True)
-            )
-            publish_ingredient(item, tags=component.food_tags)
-        if component.collectible:
-            publish_collectible(item, category=component.category, rarity=component.rarity)
-        return item
 
 
 def harvest_fragments(world: World, character: Entity) -> list[str]:

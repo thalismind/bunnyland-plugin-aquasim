@@ -14,6 +14,7 @@ from bunnyland.core import (
 from bunnyland.core.commands import CommandCost, Lane, build_submitted_command
 from bunnyland.core.handlers import HandlerContext
 from bunnyland.foundation.meters.mechanics import Meter
+from conftest import execute_handler
 
 from bunnyland_aquasim import (
     BreathComponent,
@@ -97,7 +98,7 @@ def test_dive_recovers_treasure_into_inventory():
     diver = _diver(actor.world, room)
     cache = spawn_treasure_cache(actor.world, room_id=room.id, table=("a barnacled coin",))
 
-    result = DiveHandler().execute(_ctx(actor), _cmd(diver.id, "dive", {}))
+    result = execute_handler(DiveHandler(), _ctx(actor), _cmd(diver.id, "dive", {}))
 
     assert result.ok
     recovered = [event for event in result.events if isinstance(event, TreasureRecoveredEvent)]
@@ -117,8 +118,8 @@ def test_dive_targets_a_named_cache():
     spawn_treasure_cache(actor.world, room_id=room.id, table=("a coin",))
     chosen = spawn_treasure_cache(actor.world, room_id=room.id, table=("a pearl",))
 
-    result = DiveHandler().execute(
-        _ctx(actor), _cmd(diver.id, "dive", {"cache_id": str(chosen.id)})
+    result = execute_handler(
+        DiveHandler(), _ctx(actor), _cmd(diver.id, "dive", {"cache_id": str(chosen.id)})
     )
 
     assert result.ok
@@ -131,7 +132,7 @@ def test_dive_trains_swim_skill():
     diver = _diver(actor.world, room, skill=0.0)
     spawn_treasure_cache(actor.world, room_id=room.id)
 
-    DiveHandler().execute(_ctx(actor), _cmd(diver.id, "dive", {}))
+    execute_handler(DiveHandler(), _ctx(actor), _cmd(diver.id, "dive", {}))
 
     assert diver.get_component(SwimSkillComponent).experience > 0.0
 
@@ -141,7 +142,7 @@ def test_dive_trains_swim_skill():
 
 def test_dive_rejects_invalid_character():
     actor = WorldActor()
-    result = DiveHandler().execute(_ctx(actor), _cmd("???", "dive", {}))
+    result = execute_handler(DiveHandler(), _ctx(actor), _cmd("???", "dive", {}))
     assert not result.ok
     assert result.reason == "invalid character id"
 
@@ -150,7 +151,7 @@ def test_dive_rejects_on_dry_land():
     actor = WorldActor()
     room = _dry_room(actor.world)
     diver = _diver(actor.world, room)
-    result = DiveHandler().execute(_ctx(actor), _cmd(diver.id, "dive", {}))
+    result = execute_handler(DiveHandler(), _ctx(actor), _cmd(diver.id, "dive", {}))
     assert not result.ok
     assert result.reason == "you are not in the water"
 
@@ -160,7 +161,7 @@ def test_dive_rejects_non_swimmer():
     room = _water_room(actor.world)
     diver = _diver(actor.world, room, skill=None)
     spawn_treasure_cache(actor.world, room_id=room.id)
-    result = DiveHandler().execute(_ctx(actor), _cmd(diver.id, "dive", {}))
+    result = execute_handler(DiveHandler(), _ctx(actor), _cmd(diver.id, "dive", {}))
     assert not result.ok
     assert result.reason == "you cannot swim"
 
@@ -170,7 +171,7 @@ def test_dive_rejects_airless_diver():
     room = _water_room(actor.world)
     diver = _diver(actor.world, room, breath=95.0)
     spawn_treasure_cache(actor.world, room_id=room.id)
-    result = DiveHandler().execute(_ctx(actor), _cmd(diver.id, "dive", {}))
+    result = execute_handler(DiveHandler(), _ctx(actor), _cmd(diver.id, "dive", {}))
     assert not result.ok
     assert result.reason == "you have no breath left to dive"
 
@@ -179,7 +180,7 @@ def test_dive_rejects_when_nothing_to_find():
     actor = WorldActor()
     room = _water_room(actor.world)
     diver = _diver(actor.world, room)
-    result = DiveHandler().execute(_ctx(actor), _cmd(diver.id, "dive", {}))
+    result = execute_handler(DiveHandler(), _ctx(actor), _cmd(diver.id, "dive", {}))
     assert not result.ok
     assert result.reason == "there is nothing to dive for here"
 
@@ -194,7 +195,9 @@ def test_dive_rejects_looted_cache():
     from bunnyland.core.ecs import replace_component
 
     replace_component(cache, replace(cache.get_component(TreasureCacheComponent), looted=True))
-    result = DiveHandler().execute(_ctx(actor), _cmd(diver.id, "dive", {"cache_id": str(cache.id)}))
+    result = execute_handler(
+        DiveHandler(), _ctx(actor), _cmd(diver.id, "dive", {"cache_id": str(cache.id)})
+    )
     assert not result.ok
     assert result.reason == "that cache has already been looted"
 
@@ -205,8 +208,8 @@ def test_dive_rejects_cache_in_another_room():
     other = _water_room(actor.world)
     diver = _diver(actor.world, room)
     elsewhere = spawn_treasure_cache(actor.world, room_id=other.id)
-    result = DiveHandler().execute(
-        _ctx(actor), _cmd(diver.id, "dive", {"cache_id": str(elsewhere.id)})
+    result = execute_handler(
+        DiveHandler(), _ctx(actor), _cmd(diver.id, "dive", {"cache_id": str(elsewhere.id)})
     )
     assert not result.ok
     assert result.reason == "that cache is not here"
@@ -218,7 +221,9 @@ def test_dive_rejects_non_cache_target():
     diver = _diver(actor.world, room)
     rock = spawn_entity(actor.world, [IdentityComponent(name="rock", kind="item")])
     room.add_relationship(Contains(mode=ContainmentMode.ROOM_CONTENT), rock.id)
-    result = DiveHandler().execute(_ctx(actor), _cmd(diver.id, "dive", {"cache_id": str(rock.id)}))
+    result = execute_handler(
+        DiveHandler(), _ctx(actor), _cmd(diver.id, "dive", {"cache_id": str(rock.id)})
+    )
     assert not result.ok
     assert result.reason == "that is not a treasure cache"
 
@@ -227,7 +232,9 @@ def test_dive_rejects_missing_cache():
     actor = WorldActor()
     room = _water_room(actor.world)
     diver = _diver(actor.world, room)
-    result = DiveHandler().execute(_ctx(actor), _cmd(diver.id, "dive", {"cache_id": "entity_9999"}))
+    result = execute_handler(
+        DiveHandler(), _ctx(actor), _cmd(diver.id, "dive", {"cache_id": "entity_9999"})
+    )
     assert not result.ok
     assert result.reason == "cache does not exist"
 
@@ -242,7 +249,7 @@ def test_surface_moves_diver_to_dry_room_and_refills():
     deep.add_relationship(ExitTo(direction="up"), shore.id)
     diver = _diver(actor.world, deep, breath=80.0)
 
-    result = SurfaceHandler().execute(_ctx(actor), _cmd(diver.id, "surface", {}))
+    result = execute_handler(SurfaceHandler(), _ctx(actor), _cmd(diver.id, "surface", {}))
 
     assert result.ok
     assert isinstance(result.events[0], SurfacedEvent)
@@ -255,7 +262,7 @@ def test_surface_rejects_on_dry_land():
     actor = WorldActor()
     room = _dry_room(actor.world)
     diver = _diver(actor.world, room)
-    result = SurfaceHandler().execute(_ctx(actor), _cmd(diver.id, "surface", {}))
+    result = execute_handler(SurfaceHandler(), _ctx(actor), _cmd(diver.id, "surface", {}))
     assert not result.ok
     assert result.reason == "you are not in the water"
 
@@ -266,13 +273,13 @@ def test_surface_rejects_without_a_way_up():
     deeper = _water_room(actor.world)
     deep.add_relationship(ExitTo(direction="down"), deeper.id)
     diver = _diver(actor.world, deep)
-    result = SurfaceHandler().execute(_ctx(actor), _cmd(diver.id, "surface", {}))
+    result = execute_handler(SurfaceHandler(), _ctx(actor), _cmd(diver.id, "surface", {}))
     assert not result.ok
     assert result.reason == "there is no way up from here"
 
 
 def test_surface_rejects_invalid_character():
     actor = WorldActor()
-    result = SurfaceHandler().execute(_ctx(actor), _cmd("???", "surface", {}))
+    result = execute_handler(SurfaceHandler(), _ctx(actor), _cmd("???", "surface", {}))
     assert not result.ok
     assert result.reason == "invalid character id"

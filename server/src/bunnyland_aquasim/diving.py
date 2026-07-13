@@ -27,19 +27,26 @@ from bunnyland.core import (
     HoldableComponent,
     IdentityComponent,
     PortableComponent,
-    spawn_entity,
 )
 from bunnyland.core.actions import ActionArgument, ActionDefinition, ActionEffort, effort_cost
 from bunnyland.core.commands import Lane, SubmittedCommand
-from bunnyland.core.ecs import contents, remove_from_container, replace_component
+from bunnyland.core.ecs import contents
 from bunnyland.core.events import DomainEvent, EventVisibility
 from bunnyland.core.handlers import (
     HandlerContext,
     HandlerResult,
-    ok,
+    planned,
     rejected,
     require_character,
     require_entity,
+)
+from bunnyland.core.mutations import (
+    AddEdge,
+    AddEntity,
+    EntityReference,
+    MutationPlan,
+    RemoveEdge,
+    SetComponent,
 )
 from relics import Entity, World
 
@@ -47,7 +54,7 @@ from .breath import BreathComponent, breath_band
 from .components import TreasureCacheComponent
 from .spatial import room_of
 from .submersion import is_water_room
-from .swim import SwimSkillComponent, improve_swim
+from .swim import SwimSkillComponent, improved_swim
 
 
 class TreasureRecoveredEvent(DomainEvent):
@@ -122,12 +129,44 @@ class DiveHandler:
         if rejection is not None:
             return rejection
 
-        loot = self._recover(ctx, character, cache)
-        events: list[DomainEvent] = [loot]
-        skill_event = improve_swim(character, epoch=ctx.epoch)
+        component = cache.get_component(TreasureCacheComponent)
+        loot_name = deterministic_loot(str(cache.id), ctx.epoch, component.table)
+        loot = EntityReference()
+        operations = [
+            AddEntity(
+                (
+                    IdentityComponent(
+                        name=loot_name,
+                        kind="item",
+                        tags=("aquasim", "treasure"),
+                    ),
+                    PortableComponent(),
+                    HoldableComponent(slot="hand"),
+                ),
+                reference=loot,
+            ),
+            AddEdge(character.id, loot, Contains(mode=ContainmentMode.INVENTORY)),
+            SetComponent(cache.id, replace(component, looted=True)),
+        ]
+        skill, skill_event = improved_swim(character, epoch=ctx.epoch)
+        if skill is not None:
+            operations.append(SetComponent(character.id, skill))
+        events = [
+            lambda: TreasureRecoveredEvent(
+                **ctx.event_base(
+                    visibility=EventVisibility.ROOM,
+                    actor_id=str(character.id),
+                    room_id=str(room.id),
+                    target_ids=(str(cache.id),),
+                    cache_id=str(cache.id),
+                    loot_id=str(loot.require()),
+                    loot_name=loot_name,
+                )
+            )
+        ]
         if skill_event is not None:
             events.append(skill_event)
-        return ok(*events)
+        return planned(MutationPlan(tuple(operations)), *events)
 
     def _resolve_cache(self, ctx: HandlerContext, room: Entity, command: SubmittedCommand):
         raw_cache = command.payload.get("cache_id")
@@ -153,32 +192,6 @@ class DiveHandler:
             return None, rejected("there is nothing to dive for here")
         return cache, None
 
-    def _recover(self, ctx: HandlerContext, character: Entity, cache: Entity) -> DomainEvent:
-        component = cache.get_component(TreasureCacheComponent)
-        loot_name = deterministic_loot(str(cache.id), ctx.epoch, component.table)
-        loot = spawn_entity(
-            ctx.world,
-            [
-                IdentityComponent(name=loot_name, kind="item", tags=("aquasim", "treasure")),
-                PortableComponent(),
-                HoldableComponent(slot="hand"),
-            ],
-        )
-        character.add_relationship(Contains(mode=ContainmentMode.INVENTORY), loot.id)
-        replace_component(cache, replace(component, looted=True))
-        room = room_of(ctx.world, character.id)
-        return TreasureRecoveredEvent(
-            **ctx.event_base(
-                visibility=EventVisibility.ROOM,
-                actor_id=str(character.id),
-                room_id=str(room.id) if room is not None else None,
-                target_ids=(str(cache.id),),
-                cache_id=str(cache.id),
-                loot_id=str(loot.id),
-                loot_name=loot_name,
-            )
-        )
-
 
 class SurfaceHandler:
     """Swim up out of the water to the first dry room, catching your breath."""
@@ -196,11 +209,18 @@ class SurfaceHandler:
         if surface is None:
             return rejected("there is no way up from here")
 
-        remove_from_container(ctx.world, character_id)
-        surface.add_relationship(Contains(mode=ContainmentMode.ROOM_CONTENT), character_id)
+        operations = [
+            RemoveEdge(room.id, character_id, Contains),
+            AddEdge(surface.id, character_id, Contains(mode=ContainmentMode.ROOM_CONTENT)),
+        ]
         if character.has_component(BreathComponent):
             breath = character.get_component(BreathComponent)
-            replace_component(character, replace(breath, meter=replace(breath.meter, value=0.0)))
+            operations.append(
+                SetComponent(
+                    character.id,
+                    replace(breath, meter=replace(breath.meter, value=0.0)),
+                )
+            )
         events: list[DomainEvent] = [
             SurfacedEvent(
                 **ctx.event_base(
@@ -213,10 +233,12 @@ class SurfaceHandler:
                 )
             )
         ]
-        skill_event = improve_swim(character, epoch=ctx.epoch)
+        skill, skill_event = improved_swim(character, epoch=ctx.epoch)
+        if skill is not None:
+            operations.append(SetComponent(character.id, skill))
         if skill_event is not None:
             events.append(skill_event)
-        return ok(*events)
+        return planned(MutationPlan(tuple(operations)), *events)
 
 
 DIVE_DEF = ActionDefinition(

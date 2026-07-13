@@ -6,6 +6,8 @@ enforced coverage gate reflects real behaviour rather than untested holes.
 
 from __future__ import annotations
 
+from conftest import execute_handler
+
 import asyncio
 
 from bunnyland.core import (
@@ -96,7 +98,7 @@ def _cmd(character_id, command_type, payload=None):
 
 def _run(handler_cls, actor, character, command_type, payload=None):
     ctx = HandlerContext(world=actor.world, epoch=EPOCH)
-    return handler_cls().execute(ctx, _cmd(character.id, command_type, payload))
+    return execute_handler(handler_cls(), ctx, _cmd(character.id, command_type, payload))
 
 
 # --------------------------------------------------------------------------------------

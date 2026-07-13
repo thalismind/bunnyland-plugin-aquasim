@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from conftest import execute_handler
+
 from dataclasses import replace
 
 from bunnyland.core import (
@@ -23,6 +25,7 @@ from bunnyland.core.handlers import HandlerContext
 from bunnyland.foundation.consumables.components import FoodComponent
 from bunnyland.foundation.meters.mechanics import Meter
 from bunnyland.prompts.context import ComponentPromptContext, PromptPerspective
+from conftest import execute_handler
 
 from bunnyland_aquasim import (
     BreathComponent,
@@ -111,7 +114,7 @@ def _cmd(character_id, command_type, payload=None):
 
 def _run(handler_cls, actor, character, command_type, payload=None, epoch=EPOCH):
     ctx = HandlerContext(world=actor.world, epoch=epoch)
-    return handler_cls().execute(ctx, _cmd(character.id, command_type, payload))
+    return execute_handler(handler_cls(), ctx, _cmd(character.id, command_type, payload))
 
 
 def _structure_room(world, *, kind="wreck", depth_rating=1.0, renown=1.0):
@@ -273,8 +276,8 @@ def test_survey_rejects_already_charted():
 
 def test_survey_rejects_invalid_character():
     actor = WorldActor()
-    result = SurveyHandler().execute(
-        HandlerContext(world=actor.world, epoch=EPOCH), _cmd("???", "survey")
+    result = execute_handler(
+        SurveyHandler(), HandlerContext(world=actor.world, epoch=EPOCH), _cmd("???", "survey")
     )
     assert result.reason == "invalid character id"
 

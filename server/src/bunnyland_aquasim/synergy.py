@@ -101,6 +101,14 @@ def publish_ingredient(item: Entity, *, tags: tuple[str, ...]) -> bool:
     return True
 
 
+def collectible_component(*, category: str, rarity: str):
+    return _COLLECTIBLE(category=category, rarity=rarity) if _COLLECTIBLE is not None else None
+
+
+def ingredient_component(*, tags: tuple[str, ...]):
+    return _INGREDIENT(tags=tags) if _INGREDIENT is not None else None
+
+
 def read_luck(character: Entity) -> float:
     """Return the character's materialised luck, or ``0.0`` when no fortune pack is loaded."""
     if _EFFECTIVE_LUCK is None:
@@ -110,7 +118,9 @@ def read_luck(character: Entity) -> float:
 
 __all__ = [
     "fortune_available",
+    "collectible_component",
     "hearth_available",
+    "ingredient_component",
     "museum_available",
     "publish_collectible",
     "publish_ingredient",

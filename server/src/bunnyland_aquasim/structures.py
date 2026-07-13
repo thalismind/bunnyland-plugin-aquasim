@@ -17,24 +17,24 @@ from dataclasses import replace
 
 from bunnyland.core.actions import ActionArgument, ActionDefinition, ActionEffort, effort_cost
 from bunnyland.core.commands import Lane, SubmittedCommand
-from bunnyland.core.ecs import replace_component
 from bunnyland.core.events import DomainEvent, EventVisibility
 from bunnyland.core.handlers import (
     HandlerContext,
     HandlerResult,
-    ok,
+    planned,
     rejected,
     require_character,
 )
+from bunnyland.core.mutations import AddEdge, MutationPlan, SetComponent
 from bunnyland.prompts.context import ComponentPromptContext
 from pydantic.dataclasses import dataclass
 from relics import Component, Entity, World
 
-from .edges import credit_discovery
+from .edges import DiscoveredBy, discoverer_id_of
 from .gear import gear_pressure_rating
 from .spatial import room_of
 from .submersion import is_water_room
-from .swim import improve_swim
+from .swim import improved_swim
 
 #: Human-readable descriptions per structure kind, shown to anyone in the room.
 STRUCTURE_DESCRIPTIONS: dict[str, str] = {
@@ -100,8 +100,9 @@ class SurveyHandler:
         if gear_pressure_rating(ctx.world, character) < structure.depth_rating:
             return rejected("you need heavier diving gear to reach this depth")
 
-        replace_component(room, replace(structure, charted=True))
-        credit_discovery(room, character_id, epoch=ctx.epoch)
+        operations = [SetComponent(room.id, replace(structure, charted=True))]
+        if discoverer_id_of(room) is None:
+            operations.append(AddEdge(room.id, character_id, DiscoveredBy(epoch=ctx.epoch)))
         event = SiteDiscoveredEvent(
             **ctx.event_base(
                 visibility=EventVisibility.ROOM,
@@ -115,10 +116,12 @@ class SurveyHandler:
             )
         )
         events: list[DomainEvent] = [event]
-        skill_event = improve_swim(character, epoch=ctx.epoch)
+        skill, skill_event = improved_swim(character, epoch=ctx.epoch)
+        if skill is not None:
+            operations.append(SetComponent(character.id, skill))
         if skill_event is not None:
             events.append(skill_event)
-        return ok(*events)
+        return planned(MutationPlan(tuple(operations)), *events)
 
 
 def structure_fragments(world: World, character: Entity) -> list[str]:

@@ -95,13 +95,16 @@ def test_models_convert_and_grouped_water_room_projection_is_stable(tmp_path, mo
     plants = next(
         item
         for item in first["decorations"]
-        if item.get("decoration_source3d", {}).get("role")
-        == "bunnyland.aquasim/aquatic-plants"
+        if item.get("decoration_source3d", {}).get("role") == "bunnyland.aquasim/aquatic-plants"
     )["prop_group3d"]["instances"]
 
     assert groups["bunnyland.aquasim/aquatic-plants"].count == 18
     assert groups["bunnyland.aquasim/coral-clusters"].count == 8
     assert first == second
+    assert first["room"]["environment3d"]["skybox_preset"] == ("bunnyland.aquasim/underwater")
+    ambient = next(item for item in first["decorations"] if item.get("particle_emitter3d"))
+    assert ambient["decoration_source3d"]["role"] == ("bunnyland.aquasim/suspended-silt-field")
+    assert ambient["particle_emitter3d"]["system"]["key"] == ("bunnyland.aquasim/suspended-silt")
     assert all(
         min(
             instance["position"]["x"],
@@ -112,3 +115,7 @@ def test_models_convert_and_grouped_water_room_projection_is_stable(tmp_path, mo
         == pytest.approx(1.8)
         for instance in plants
     )
+    dry = spawn_entity(actor.world, [RoomComponent(title="Meadow", biome="meadow")])
+    dry_scene = room_scene_view(actor, str(dry.id))
+    assert dry_scene["room"]["environment3d"] is None
+    assert not any(item.get("particle_emitter3d") for item in dry_scene["decorations"])

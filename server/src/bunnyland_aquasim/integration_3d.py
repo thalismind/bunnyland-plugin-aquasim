@@ -43,14 +43,86 @@ def install_aquasim_3d(actor, context) -> None:
     from bunnyland_3d import (
         AssetSource,
         ModelAsset,
+        ParticleSystem3D,
         RoomDecorationRule,
+        RoomParticleRule,
+        RoomSkyboxRule,
+        Skybox3D,
         register_models,
+        register_particle_rules,
+        register_particle_systems,
         register_room_decorations,
+        register_skybox_rules,
+        register_skyboxes,
+    )
+
+    owner = "bunnyland.aquasim"
+    register_skyboxes(
+        actor,
+        owner,
+        (
+            Skybox3D(
+                f"{owner}/underwater",
+                zenith_color="#123f52",
+                sky_color="#1b6572",
+                horizon_color="#2f7f83",
+                horizon_mix=0.72,
+                sun_color="#9ddbd5",
+                sun_x=0.5,
+                sun_y=0.08,
+                sun_size=0.08,
+                sun_opacity=0.32,
+                cloud_count=0,
+            ),
+        ),
+    )
+    register_particle_systems(
+        actor,
+        owner,
+        (
+            ParticleSystem3D(
+                f"{owner}/suspended-silt",
+                vertical_motion="drift",
+                vertical_scale=0.05,
+                lateral_wobble=0.12,
+            ),
+        ),
+    )
+    register_skybox_rules(
+        actor,
+        owner,
+        (
+            RoomSkyboxRule(
+                f"{owner}/underwater-sky",
+                f"{owner}/underwater",
+                lambda _world, room: water_room(room),
+                priority=100,
+            ),
+        ),
+    )
+    register_particle_rules(
+        actor,
+        owner,
+        (
+            RoomParticleRule(
+                f"{owner}/suspended-silt-field",
+                f"{owner}/suspended-silt",
+                lambda _world, room: water_room(room),
+                priority=100,
+                count=80,
+                height=4.0,
+                margin=1.0,
+                color="#a7d9cf",
+                size=0.045,
+                speed=0.08,
+                opacity=0.35,
+            ),
+        ),
     )
 
     register_models(
         actor,
-        "bunnyland.aquasim",
+        owner,
         (
             ModelAsset(
                 key="bunnyland.aquasim/aquatic-plants",
@@ -70,7 +142,7 @@ def install_aquasim_3d(actor, context) -> None:
     )
     register_room_decorations(
         actor,
-        "bunnyland.aquasim",
+        owner,
         (
             RoomDecorationRule(
                 key="bunnyland.aquasim/aquatic-plants",

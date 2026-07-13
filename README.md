@@ -41,6 +41,8 @@ The plugin exposes `bunnyland_aquasim.bunnyland_plugins()` and contributes:
 - `AquaWorldgenHook` — floods aquatic generated rooms and sinks treasure caches.
 - `dive` and `surface` — verbs for the diver (human or AI).
 - `spawn_rebreather`, `spawn_treasure_cache` — spawn factories.
+- Optional Bunnyland 3D integration adds aquatic plants and coral plus an underwater
+  enclosure skybox and a slow suspended-silt particle field in water rooms.
 
 ## Running
 

@@ -6,8 +6,6 @@ enforced coverage gate reflects real behaviour rather than untested holes.
 
 from __future__ import annotations
 
-from conftest import execute_handler
-
 import asyncio
 
 from bunnyland.core import (
@@ -27,6 +25,7 @@ from bunnyland.core.handlers import HandlerContext
 from bunnyland.foundation.meters.mechanics import Meter
 from bunnyland.plugins import apply_plugins
 from bunnyland.prompts.context import ComponentPromptContext
+from conftest import execute_handler
 from pydantic.dataclasses import dataclass
 from relics import Component
 

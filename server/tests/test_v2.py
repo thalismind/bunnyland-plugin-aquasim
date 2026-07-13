@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from conftest import execute_handler
-
 from dataclasses import replace
 
 from bunnyland.core import (

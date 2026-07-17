@@ -10,3 +10,5 @@ permissions:
 jobs:
   lint-and-test:
     uses: thalismind/.github/.github/workflows/plugin-ci.yml@main
+    with:
+      base_coverage_min: 94

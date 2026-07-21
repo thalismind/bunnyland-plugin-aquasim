@@ -3,11 +3,11 @@ name = "bunnyland-aquasim"
 version = "0.2.0"
 description = "Out-of-tree Bunnyland plugin: swimming, diving, and the underwater — water rooms, a breath meter, drowning, currents, hazards, deterministic dive loot, and a swim skill."
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.12,<3.15"
 dependencies = [
-    "bunnyland",
+    "bunnyland>=1.0.0rc2,<2",
     "pydantic>=2.0",
-    "relics",
+    "relics-ecs>=0.1.1,<0.2",
 ]
 
 [project.optional-dependencies]
